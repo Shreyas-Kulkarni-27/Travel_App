@@ -1,8 +1,10 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, send_file
+import pdfkit
 from prompts import SYSTEM_PROMPT, format_prompt
 from groq import Groq
 import os
 from dotenv import load_dotenv
+from io import BytesIO
 
 load_dotenv()
 
@@ -34,6 +36,17 @@ def buddy_go():
         return jsonify({'itinerary': itinerary})
     except Exception as e:
         return jsonify({'error': str(e)})
+
+@app.route('/generate_pdf', methods=['POST'])
+def generate_pdf():
+    data = request.get_json()
+    itinerary = data.get('itinerary', '')
+
+    rendered = render_template('itinerary_template.html', itinerary=itinerary)
+    pdf = pdfkit.from_string(rendered, False)
+
+    pdf_output = BytesIO(pdf)
+    return send_file(pdf_output, as_attachment=True, download_name='travel_itinerary.pdf', mimetype='application/pdf')
 
 if __name__ == '__main__':
     app.run(debug=True)
